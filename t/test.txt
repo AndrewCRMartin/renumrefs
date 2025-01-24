@@ -1,0 +1,13 @@
+This is some text containing references [i.e. numeric citations] of
+the form [1], [2], [3], [4].
+
+It also uses the same references again [1], [2], [3], [4].
+
+And may [1], [2], [3], [4] contain them repeated on the same line [1], [2],
+[3], [4] or with spaces [ 1 ], [ 2], [ 3].
+
+It also contains some comma separated lists of references like this
+[1,2,3,4,5,6] and these may also contain spaces [1, 2, 3, 4, 5, 6] or
+like this [ 1 , 2,3, 4 ,5,6 ].
+
+However, the code must not catch this: 7,8,9,10 as being references!
