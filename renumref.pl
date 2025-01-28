@@ -1,122 +1,70 @@
 #!/usr/bin/perl
+
 use strict;
 
 my $refNum = shift @ARGV;
-my $fnm = shift @ARGV;
+my $fnm    = shift @ARGV;
 
-
-my $maxRef = getMaxRef($fnm);
+my $data   = ReadData($fnm);
+my $maxRef = FindMaxRef($data);
 print "$maxRef\n";
-#my $data = RenumRefs($fnm, $maxRef, $refNum);
-#WriteData($data);
 
-sub RenumRefs
+
+
+sub ReadData
 {
-    my($fnm, $maxRefNum, $refNum) = @_;
+    my($fnm) = @_;
     my $data = '';
-
+    
     if(open(my $fp, '<', $fnm))
     {
-        while(<$fp>)
-        {
-            $data .= $_;
-        }
-        close($fp);
+        local $/ = undef;
 
-        for(my $ref=$maxRef; $ref>=$refNum; $ref--)
-        {
-            #      '[ nnn ,'   or   '[ nnn ]' ||
-            #      '[ lll, nnn ]'   or  '[ lll, nnn, mmm ]'
-            while($data =~ /\[\s*(\d+)\s*[\,\]]/ ||
-                  $data =~ /\[[\s\d\,]+\,\s*(\d+)\s*[\,\]]/ )
-            {
-                my $oldNum = $1;
-                if($oldNum == $ref)
-                {
-                    my $newNum = $oldNum+1;
-                    $data =~ s/(\[[\s\d\,]*?)$oldNum([\s\d\,]*\])/$1$newNum$2/g;
-                }
-            }
-        }
+        $data = <$fp>;
+        close $fp;
     }
     else
     {
-        die "Can't open $fnm (again)";
+        die "Can't read $fnm";
     }
     return($data);
-} 
+}
 
-sub RenumRefs1
+sub FindNextRefs
 {
-    my($fnm, $maxRefNum, $refNum) = @_;
-    my @data = ();
+    my($data) = @_;
 
-    if(open(my $fp, '<', $fnm))
-    {
-        while(<$fp>)
-        {
-            push @data, $_;
-        }
-        close($fp);
+    local $/ = undef;
+    my $remaining = '';
 
-        for(my $ref=$maxRef; $ref>=$refNum; $ref--)
-        {
-            foreach my $line (@data)
-            {
-                #      '[ nnn ,'   or   '[ nnn ]' ||
-                #      '[ lll, nnn ]'   or  '[ lll, nnn, mmm ]'
-                while($line =~ /\[\s*(\d+)\s*[\,\]]/ ||
-                      $line =~ /\[[\s\d\,]+\,\s*(\d+)\s*[\,\]]/ )
-                {
-                    my $oldNum = $1;
-                    if($oldNum == $ref)
-                    {
-                        my $newNum = $oldNum+1;
-                        $line =~ s/(\[[\s\d\,]*?)$oldNum([\s\d\,]*\])/$1$newNum$2/g;
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        die "Can't open $fnm (again)";
-    }
+    $data =~ m/\[([\d\,]+?)\](.*)/;
+    my $ref = $1;
+    my $remaining = $2;
 
-    return(@data);
-} 
+    my @refs = split(/\s*\,\s*/, $ref);
 
-sub getMaxRef
+    return($remaining, @refs);
+}
+
+sub FindMaxRef
 {
-    my ($fnm) = @_;
-    my $maxRefNum = 0;
-
-    if(open(my $fp, '<', $fnm))
+    my($data) = @_;
+    my $maxRef = 0;
+    
+    while(1)
     {
-        my $ref;
-        while(<$fp>)
+        my @refs = ();
+        ($data, @refs) = FindNextRefs($data);
+
+        print "Remaining data:\n$data\n";
+        
+        last if(scalar(@refs) == 0);
+
+        foreach my $ref (@refs)
         {
-            my $line = $_;
-            my $pattern = '(\[\s*\d+\s*\])';
-            while($line =~ /$pattern/ &&
-                  ($1 ne '^^^^'))
-            {
-                my $inBrackets = $1;
-                print "$inBrackets\n";
-                $line =~ s/$inBrackets/^^^^/;
-                
-            }
-
-            if ($ref > $maxRefNum)
-            {
-                $maxRefNum = $ref;
-            }
+            $maxRef = $ref if($ref > $maxRef);
         }
-        close($fp);
     }
-    else
-    {
-        die "Can't open $fnm";
-    }
-    return($maxRefNum);
+
+    return($maxRef);
 }
